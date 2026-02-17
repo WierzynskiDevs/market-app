@@ -13,6 +13,7 @@ import {
   SafeAreaView,
   Image,
 } from 'react-native';
+import { Trash, ShoppingCart, X, MoreVertical, Plus, Minus } from 'lucide-react-native';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { orderService } from '../services';
@@ -170,8 +171,8 @@ export const CartModal: React.FC = () => {
           </View>
           <View style={styles.itemOptionsRow}>
             <Text style={styles.instructionsLabel}>Instruções</Text>
-            <TouchableOpacity onPress={() => removeFromCart(item.product.id)}>
-              <Text style={styles.removeButton}>Remover</Text>
+            <TouchableOpacity onPress={() => removeFromCart(item.product.id)} style={styles.removeButtonContainer}>
+              <Trash size={14} color="#F44336" />
             </TouchableOpacity>
           </View>
         </View>
@@ -182,14 +183,18 @@ export const CartModal: React.FC = () => {
               isOne ? removeFromCart(item.product.id) : handleUpdateQuantity(item.product.id, item.quantity - 1)
             }
           >
-            <Text style={styles.qtyButtonText}>{isOne ? '🗑' : '−'}</Text>
+            {isOne ? (
+              <Trash size={16} color="#333" />
+            ) : (
+              <Minus size={16} color="#333" />
+            )}
           </TouchableOpacity>
           <Text style={styles.quantity}>{item.quantity}</Text>
           <TouchableOpacity
             style={styles.qtyButton}
             onPress={() => handleUpdateQuantity(item.product.id, item.quantity + 1)}
           >
-            <Text style={styles.qtyButtonText}>+</Text>
+            <Plus size={16} color="#333" />
           </TouchableOpacity>
         </View>
       </View>
@@ -224,13 +229,13 @@ export const CartModal: React.FC = () => {
         >
           <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-              <Text style={styles.title}>Carrinho</Text>
+              <ShoppingCart size={24} color="#000" />
               <View style={styles.headerRight}>
                 <TouchableOpacity style={styles.headerIconButton} hitSlop={8}>
-                  <Text style={styles.headerIconText}>⋯</Text>
+                  <MoreVertical size={20} color="#333" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={closeCartModal} style={styles.headerIconButton} hitSlop={8}>
-                  <Text style={styles.headerIconText}>›</Text>
+                  <X size={20} color="#333" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -395,6 +400,9 @@ const styles = StyleSheet.create({
   instructionsLabel: {
     fontSize: 13,
     color: '#666',
+  },
+  removeButtonContainer: {
+    padding: 4,
   },
   removeButton: {
     fontSize: 13,

@@ -14,6 +14,26 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import { 
+  ArrowLeft, 
+  ChevronRight,
+  ChevronLeft,
+  Plus, 
+  Minus, 
+  ShoppingCart, 
+  Search,
+  Utensils,
+  GlassWater,
+  Sparkles,
+  ShowerHead,
+  Croissant,
+  Drumstick,
+  Apple,
+  Sandwich,
+  Milk,
+  ShoppingBag,
+  Package,
+} from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../../models';
 import { productService } from '../../services';
 import { useCart } from '../../contexts/CartContext';
@@ -47,6 +67,48 @@ interface CartButtonsOverlayProps {
   onQuantityChange: (newQty: number, e?: any) => void;
 }
 
+const SearchBar: React.FC<{ searchText: string; onChangeText: (text: string) => void }> = ({ searchText, onChangeText }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  
+  return (
+    <View style={styles.headerSearchWrapper}>
+      <View style={[styles.headerSearchContainer, isFocused && styles.headerSearchContainerFocused]}>
+        <Search size={18} color={isFocused ? "#2196F3" : "#888"} style={styles.searchIcon} />
+        <TextInput
+          style={styles.headerSearchInput}
+          placeholder="Buscar produtos..."
+          value={searchText}
+          onChangeText={onChangeText}
+          placeholderTextColor="#888"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          autoCorrect={false}
+          autoCapitalize="none"
+          selectionColor="#2196F3"
+        />
+      </View>
+    </View>
+  );
+};
+
+// Mapeamento de categorias para ícones e cores
+const getCategoryIcon = (category: string) => {
+  const iconMap: Record<string, { Icon: any; color: string }> = {
+    'Alimentos': { Icon: Utensils, color: '#FF9800' },
+    'Bebidas': { Icon: GlassWater, color: '#2196F3' },
+    'Limpeza': { Icon: Sparkles, color: '#00BCD4' },
+    'Higiene': { Icon: ShowerHead, color: '#9C27B0' },
+    'Padaria': { Icon: Croissant, color: '#FFC107' },
+    'Açougue': { Icon: Drumstick, color: '#F44336' },
+    'Hortifruti': { Icon: Apple, color: '#4CAF50' },
+    'Frios': { Icon: Sandwich, color: '#FFEB3B' },
+    'Laticínios': { Icon: Milk, color: '#E0E0E0' },
+    'Mercearia': { Icon: ShoppingBag, color: '#795548' },
+  };
+  
+  return iconMap[category] || { Icon: Package, color: '#757575' };
+};
+
 const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
   product,
   cartQty,
@@ -67,7 +129,7 @@ const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
           onQuickAdd();
         }}
       >
-        <Text style={styles.quickAddButtonText}>+</Text>
+        <Plus size={18} color="#fff" />
       </Pressable>
     );
   }
@@ -79,7 +141,7 @@ const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
           style={styles.quantityControlButton}
           onPress={(e) => onQuantityChange(cartQty - 1, e)}
         >
-          <Text style={styles.quantityControlSymbol}>−</Text>
+          <Minus size={16} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.quantityControlValue}>{cartQty}</Text>
         <TouchableOpacity
@@ -87,7 +149,7 @@ const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
           onPress={(e) => onQuantityChange(cartQty + 1, e)}
           disabled={cartQty >= product.stock}
         >
-          <Text style={[styles.quantityControlSymbol, cartQty >= product.stock && styles.quantityControlSymbolDisabled]}>+</Text>
+          <Plus size={16} color={cartQty >= product.stock ? "#888" : "#fff"} />
         </TouchableOpacity>
       </View>
     </View>
@@ -105,6 +167,7 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [categoryPage, setCategoryPage] = useState<Record<string, number>>({});
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithFinalPrice | null>(null);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const categoryScrollRefs = useRef<Record<string, ScrollView | null>>({});
 
   const itemsPerView = isMobile ? ITEMS_PER_VIEW_MOBILE : ITEMS_PER_VIEW_WEB;
@@ -133,33 +196,27 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     navigation.setOptions({
+      headerStyle: {
+        height: 90,
+      },
       headerLeft: () => (
         <View style={styles.headerLeftContainer}>
           <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.headerBackText}>←</Text>
+            <ArrowLeft size={20} color="#2196F3" />
           </TouchableOpacity>
           <Text style={styles.headerTitleText} numberOfLines={1}>{marketName}</Text>
         </View>
       ),
       headerTitleAlign: 'center',
-      headerTitleContainerStyle: { flex: 1, left: 0, right: 0 },
-      headerTitle: () => (
-        <View style={styles.headerSearchContainer}>
-          <TextInput
-            style={styles.headerSearchInput}
-            placeholder="Buscar produtos..."
-            value={searchText}
-            onChangeText={setSearchText}
-            placeholderTextColor="#888"
-          />
-        </View>
-      ),
+      headerTitleContainerStyle: { flex: 1, left: 0, right: 0, justifyContent: 'center', alignItems: 'stretch' },
+      headerTitle: () => <SearchBar searchText={searchText} onChangeText={setSearchText} />,
       headerRight: () => (
         <TouchableOpacity
           style={styles.headerCartButton}
           onPress={() => openCartModal(navigation)}
         >
-          <Text style={styles.cartButtonText}>Carrinho ({getTotalItems()})</Text>
+          <ShoppingCart size={20} color="#fff" />
+          <Text style={styles.cartButtonText}>({getTotalItems()})</Text>
         </TouchableOpacity>
       ),
     });
@@ -332,23 +389,32 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
       <View key={section.title} style={styles.sectionBlock}>
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeader}>{section.title}</Text>
-          <TouchableOpacity
-            style={styles.seeAllButton}
-            onPress={() => goToCategory(section.title)}
-          >
-            <Text style={styles.seeAllText}>Ver todos</Text>
-          </TouchableOpacity>
+          {!isMobile && (
+            <View style={styles.headerControls}>
+              <TouchableOpacity
+                style={styles.seeAllButton}
+                onPress={() => goToCategory(section.title)}
+              >
+                <Text style={styles.seeAllText}>Ver mais</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.navArrowButton, !canGoPrev && styles.navArrowButtonDisabled]}
+                onPress={() => canGoPrev && goToPrevPage(section.title)}
+                disabled={!canGoPrev}
+              >
+                <ChevronLeft size={18} color={canGoPrev ? "#333" : "#ccc"} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.navArrowButton, !canGoNext && styles.navArrowButtonDisabled]}
+                onPress={() => canGoNext && goToNextPage(section.title, section.items.length)}
+                disabled={!canGoNext}
+              >
+                <ChevronRight size={18} color={canGoNext ? "#333" : "#ccc"} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         <View style={styles.carouselRow}>
-          {!isMobile && (
-            <TouchableOpacity
-              style={[styles.arrowButton, !canGoPrev && styles.arrowDisabled]}
-              onPress={() => canGoPrev && goToPrevPage(section.title)}
-              disabled={!canGoPrev}
-            >
-              <Text style={[styles.arrowText, !canGoPrev && styles.arrowTextDisabled]}>‹</Text>
-            </TouchableOpacity>
-          )}
           <View style={[styles.carouselViewport, { width: carouselVisibleWidth }]}>
             <ScrollView
               ref={(el) => {
@@ -369,15 +435,6 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
               ))}
             </ScrollView>
           </View>
-          {!isMobile && (
-            <TouchableOpacity
-              style={[styles.arrowButton, !canGoNext && styles.arrowDisabled]}
-              onPress={() => canGoNext && goToNextPage(section.title, section.items.length)}
-              disabled={!canGoNext}
-            >
-              <Text style={[styles.arrowText, !canGoNext && styles.arrowTextDisabled]}>›</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
     );
@@ -424,15 +481,34 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.webRow}>
           <View style={styles.sidebar}>
             <Text style={styles.sidebarTitle}>Categorias</Text>
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                style={styles.sidebarButton}
-                onPress={() => goToCategory(cat)}
-              >
-                <Text style={styles.sidebarButtonText}>{cat}</Text>
-              </TouchableOpacity>
-            ))}
+            {categories.map((cat) => {
+              const { Icon, color } = getCategoryIcon(cat);
+              return (
+                <Pressable
+                  key={cat}
+                  style={[
+                    styles.sidebarButton,
+                    hoveredCategory === cat && styles.sidebarButtonHovered,
+                  ]}
+                  onPress={() => goToCategory(cat)}
+                  {...({
+                    onMouseEnter: () => setHoveredCategory(cat),
+                    onMouseLeave: () => setHoveredCategory(null),
+                  } as any)}
+                >
+                  <View style={styles.sidebarButtonContent}>
+                    <View style={[styles.categoryIconContainer, { backgroundColor: `${color}20` }]}>
+                      <Icon size={20} color={color} />
+                    </View>
+                    <Text style={[
+                      styles.sidebarButtonText,
+                      hoveredCategory === cat && styles.sidebarButtonTextHovered,
+                    ]}>{cat}</Text>
+                  </View>
+                  <View style={[styles.categoryAccent, { backgroundColor: color }]} />
+                </Pressable>
+              );
+            })}
           </View>
           <View style={styles.mainContent}>{mainContent}</View>
         </View>
@@ -468,19 +544,37 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     maxWidth: 140,
   },
-  headerSearchContainer: {
-    flex: 1,
+  headerSearchWrapper: {
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'stretch',
-    minWidth: 0,
+  },
+  headerSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 50,
+    width: '100%',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  headerSearchContainerFocused: {
+    borderColor: '#2196F3',
+    backgroundColor: '#fff',
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   headerSearchInput: {
-    width: '100%',
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    flex: 1,
+    paddingVertical: 0,
     fontSize: 16,
+    minWidth: 0,
+    height: '100%',
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
   headerCartButton: {
     backgroundColor: '#4CAF50',
@@ -488,6 +582,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   cartButton: {
     backgroundColor: '#4CAF50',
@@ -531,30 +628,77 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   sidebar: {
-    width: 200,
-    backgroundColor: '#fff',
+    width: 280,
+    backgroundColor: '#f8f9fa',
     borderRightWidth: 1,
-    borderRightColor: '#eee',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    borderRightColor: '#e0e0e0',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   sidebarTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#666',
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a237e',
+    marginBottom: 20,
     paddingHorizontal: 4,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   sidebarButton: {
-    backgroundColor: '#e3f2fd',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  sidebarButtonHovered: {
+    backgroundColor: '#f5f5f5',
+    borderColor: '#2196F3',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    transform: [{ translateX: 4 }],
+  },
+  sidebarButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  categoryIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 4,
+    height: '100%',
   },
   sidebarButtonText: {
     fontSize: 15,
     fontWeight: '600',
+    color: '#333',
+    letterSpacing: 0.2,
+    flex: 1,
+  },
+  sidebarButtonTextHovered: {
     color: '#1976d2',
   },
   mainContent: {
@@ -576,7 +720,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingTop: 0,
+    paddingTop: 32,
     paddingBottom: 32,
   },
   scrollView: {
@@ -589,21 +733,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sectionHeader: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
+    paddingHorizontal: 16,
+  },
+  headerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   seeAllButton: {
     paddingVertical: 4,
     paddingHorizontal: 8,
+    marginRight: 4,
   },
   seeAllText: {
     fontSize: 14,
-    color: '#2196F3',
+    color: '#333',
     fontWeight: '600',
+  },
+  navArrowButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navArrowButtonDisabled: {
+    borderColor: '#ccc',
+    opacity: 0.5,
   },
   carouselRow: {
     flexDirection: 'row',

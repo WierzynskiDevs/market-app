@@ -13,6 +13,7 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
+import { ChevronRight, ChevronLeft, ShoppingCart, Plus, Minus } from 'lucide-react-native';
 import { ProductWithFinalPrice, ProductImageSource } from '../models';
 import { useCart } from '../contexts/CartContext';
 import { getProductImageSource, DEFAULT_IMAGE_KEY } from '../utils/productImage';
@@ -249,14 +250,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       onPress={goToPrevImage}
                       disabled={!canGoPrev}
                     >
-                      <Text style={[styles.galleryArrowText, !canGoPrev && styles.galleryArrowDisabled]}>‹</Text>
+                      <ChevronLeft size={24} color={canGoPrev ? "#fff" : "#888"} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.galleryArrow, styles.galleryArrowRight]}
                       onPress={goToNextImage}
                       disabled={!canGoNext}
                     >
-                      <Text style={[styles.galleryArrowText, !canGoNext && styles.galleryArrowDisabled]}>›</Text>
+                      <ChevronRight size={24} color={canGoNext ? "#fff" : "#888"} />
                     </TouchableOpacity>
                     <View style={styles.galleryDots}>
                       {productImages.map((_, index) => (
@@ -297,6 +298,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       onPress={handleCartPlus}
                       disabled={product.stock === 0}
                     >
+                      <ShoppingCart size={18} color="#fff" />
                       <Text style={styles.modalAddToCartButtonText}>Adicionar ao carrinho</Text>
                     </TouchableOpacity>
                   ) : (
@@ -305,7 +307,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         style={styles.modalQuantityBtn}
                         onPress={handleCartMinus}
                       >
-                        <Text style={styles.modalQuantityBtnText}>−</Text>
+                        <Minus size={18} color="#fff" />
                       </TouchableOpacity>
                       <Text style={styles.modalQuantityValue}>{cartQuantity}</Text>
                       <TouchableOpacity
@@ -313,7 +315,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         onPress={handleCartPlus}
                         disabled={cartQuantity >= product.stock}
                       >
-                        <Text style={[styles.modalQuantityBtnText, cartQuantity >= product.stock && styles.modalQuantityBtnTextDisabled]}>+</Text>
+                        <Plus size={18} color={cartQuantity >= product.stock ? "#888" : "#fff"} />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -562,6 +564,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
+    flexDirection: 'row',
+    gap: 8,
   },
   modalAddToCartButtonDisabled: {
     opacity: 0.5,

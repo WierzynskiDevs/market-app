@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
+import { Pencil, Trash2 } from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../../models';
 import { productService } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
@@ -65,12 +66,14 @@ export const ManageProductsScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.actionButton, styles.editButton]}
           onPress={() => navigation.navigate('EditProduct', { product: item })}
         >
+          <Pencil size={16} color="#fff" />
           <Text style={styles.actionButtonText}>Editar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.deleteButton]}
           onPress={() => handleDelete(item.id, item.name)}
         >
+          <Trash2 size={16} color="#fff" />
           <Text style={styles.actionButtonText}>Excluir</Text>
         </TouchableOpacity>
       </View>
@@ -168,6 +171,9 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 6,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
   },
   editButton: {
     backgroundColor: '#2196F3',

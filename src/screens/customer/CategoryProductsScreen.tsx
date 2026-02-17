@@ -11,6 +11,7 @@ import {
   Alert,
   useWindowDimensions,
 } from 'react-native';
+import { ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../../models';
 import { productService } from '../../services';
 import { useCart } from '../../contexts/CartContext';
@@ -71,7 +72,7 @@ const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
           onQuickAdd();
         }}
       >
-        <Text style={styles.quickAddButtonText}>+</Text>
+        <Plus size={18} color="#fff" />
       </Pressable>
     );
   }
@@ -83,7 +84,7 @@ const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
           style={styles.quantityControlButton}
           onPress={(e) => onQuantityChange(cartQty - 1, e)}
         >
-          <Text style={styles.quantityControlSymbol}>−</Text>
+          <Minus size={16} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.quantityControlValue}>{cartQty}</Text>
         <TouchableOpacity
@@ -91,7 +92,7 @@ const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
           onPress={(e) => onQuantityChange(cartQty + 1, e)}
           disabled={cartQty >= product.stock}
         >
-          <Text style={[styles.quantityControlSymbol, cartQty >= product.stock && styles.quantityControlSymbolDisabled]}>+</Text>
+          <Plus size={16} color={cartQty >= product.stock ? "#888" : "#fff"} />
         </TouchableOpacity>
       </View>
     </View>
@@ -112,15 +113,49 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
   const itemSize = useMemo(() => {
     const n = itemsPerRow;
     const totalGap = GAP * (n - 1);
-    const extraBuffer = !isMobile ? WEB_LAYOUT_BUFFER : 0;
-    const availableWidth = width - PADDING_HORIZONTAL * 2 - totalGap - extraBuffer;
+    const padding = 32; // Padding lateral adequado
+    const availableWidth = width - padding * 2 - totalGap;
     return Math.floor(availableWidth / n);
-  }, [width, itemsPerRow, isMobile]);
+  }, [width, itemsPerRow]);
 
   useEffect(() => {
     const data = productService.getProductsByMarket(marketId);
     setProducts(data);
   }, [marketId]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 8 }}>
+          <ArrowLeft size={20} color="#2196F3" />
+        </TouchableOpacity>
+      ),
+      headerTitle: () => (
+        <View style={{ alignItems: 'flex-start' }}>
+          <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{marketName}</Text>
+          <Text style={{ fontSize: 14, color: '#666' }}>{category}</Text>
+        </View>
+      ),
+      headerRight: () => (
+        <TouchableOpacity
+          style={{ 
+            marginRight: 16, 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            gap: 6,
+            backgroundColor: '#4CAF50',
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 20,
+          }}
+          onPress={() => openCartModal(navigation)}
+        >
+          <ShoppingCart size={18} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>({getTotalItems()})</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, marketName, category, getTotalItems]);
 
   const sections = useMemo((): Section[] => {
     const byCategory = products.filter((p) => p.category === category);
@@ -241,7 +276,7 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
       {row.map((p) => renderProductCard(p))}
       {row.length < itemsPerRow &&
         Array.from({ length: itemsPerRow - row.length }).map((_, i) => (
-          <View key={`empty-${i}`} style={[styles.productCard, styles.emptyCard, { width: itemSize, minHeight: cardMinHeight }]} />
+          <View key={`empty-${i}`} style={[styles.emptyCard, { width: itemSize }]} />
         ))}
     </View>
   );
@@ -252,22 +287,9 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Voltar</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>{marketName}</Text>
-          <Text style={styles.categoryTitle}>{category}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.cartButton}
-          onPress={() => openCartModal(navigation)}
-        >
-          <Text style={styles.cartButtonText}>Carrinho ({getTotalItems()})</Text>
-        </TouchableOpacity>
+      <View style={styles.banner}>
+        <View style={styles.bannerContent} />
       </View>
-
       {sections.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>Nenhum produto nesta categoria.</Text>
@@ -299,49 +321,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    backgroundColor: '#fff',
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  banner: {
+    paddingHorizontal: 32,
+    paddingTop: 16,
+    paddingBottom: 16,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
-  headerLeft: {
-    flex: 1,
-  },
-  backButton: {
-    marginBottom: 4,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#2196F3',
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  categoryTitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  cartButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  cartButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  bannerContent: {
+    width: '70%',
+    height: 120,
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
   list: {
-    padding: 16,
-    paddingTop: 0,
-    paddingBottom: 32,
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingHorizontal: 32,
   },
   empty: {
     flex: 1,
@@ -354,17 +351,17 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   sectionHeader: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 24,
+    marginBottom: 12,
   },
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: GAP,
-    marginBottom: GAP,
+    marginBottom: 0,
   },
   productCard: {
     backgroundColor: '#fff',
@@ -435,17 +432,17 @@ const styles = StyleSheet.create({
   },
   originalPrice: {
     fontFamily: 'BricolageGrotesque_400Regular',
-    fontSize: 11,
+    fontSize: 13,
     color: '#888',
     textDecorationLine: 'line-through',
   },
   discountPercent: {
     fontFamily: 'BricolageGrotesque_700Bold',
-    fontSize: 11,
+    fontSize: 13,
     color: '#000',
     backgroundColor: '#d9e7f2',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#b8d4e8',
@@ -453,15 +450,15 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontFamily: 'BricolageGrotesque_700Bold',
-    fontSize: 14,
+    fontSize: 18,
     color: '#000',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   productPriceMobile: {
     fontFamily: 'BricolageGrotesque_700Bold',
-    fontSize: 15,
+    fontSize: 19,
     color: '#000',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   productNameSlot: {
     minHeight: 36,
@@ -471,12 +468,12 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontFamily: 'BricolageGrotesque_400Regular',
-    fontSize: 12,
+    fontSize: 14,
     color: '#333',
   },
   productNameMobile: {
     fontFamily: 'BricolageGrotesque_400Regular',
-    fontSize: 13,
+    fontSize: 15,
     color: '#333',
   },
   quickAddButtonOverlay: {
@@ -511,5 +508,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     shadowOpacity: 0,
     elevation: 0,
+    height: 0,
+    minHeight: 0,
   },
 });

@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { Plus, Minus } from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../../models';
 import { useCart } from '../../contexts/CartContext';
 
@@ -84,7 +85,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.quantityLabel}>Quantidade:</Text>
           <View style={styles.quantityControl}>
             <TouchableOpacity style={styles.button} onPress={decrement}>
-              <Text style={styles.buttonText}>-</Text>
+              <Minus size={18} color="#333" />
             </TouchableOpacity>
             <TextInput
               style={styles.quantityInput}
@@ -93,7 +94,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               keyboardType="number-pad"
             />
             <TouchableOpacity style={styles.button} onPress={increment}>
-              <Text style={styles.buttonText}>+</Text>
+              <Plus size={18} color="#333" />
             </TouchableOpacity>
           </View>
         </View>

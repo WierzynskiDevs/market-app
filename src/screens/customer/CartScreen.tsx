@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
+import { Trash2, Plus, Minus } from 'lucide-react-native';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService } from '../../services';
@@ -74,14 +75,14 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.qtyButton}
           onPress={() => handleUpdateQuantity(item.product.id, item.quantity - 1)}
         >
-          <Text style={styles.qtyButtonText}>-</Text>
+          <Minus size={16} color="#333" />
         </TouchableOpacity>
         <Text style={styles.quantity}>{item.quantity}</Text>
         <TouchableOpacity
           style={styles.qtyButton}
           onPress={() => handleUpdateQuantity(item.product.id, item.quantity + 1)}
         >
-          <Text style={styles.qtyButtonText}>+</Text>
+          <Plus size={16} color="#333" />
         </TouchableOpacity>
       </View>
 
@@ -89,8 +90,8 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.subtotal}>
           Subtotal: R$ {(item.product.finalPrice * item.quantity).toFixed(2)}
         </Text>
-        <TouchableOpacity onPress={() => removeFromCart(item.product.id)}>
-          <Text style={styles.removeButton}>Remover</Text>
+        <TouchableOpacity onPress={() => removeFromCart(item.product.id)} style={styles.removeButtonContainer}>
+          <Trash2 size={14} color="#F44336" />
         </TouchableOpacity>
       </View>
     </View>
@@ -202,6 +203,9 @@ const styles = StyleSheet.create({
   subtotal: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  removeButtonContainer: {
+    padding: 4,
   },
   removeButton: {
     color: '#F44336',
