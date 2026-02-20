@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   Pressable,
   StyleSheet,
@@ -18,8 +17,6 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronDown,
-  Plus, 
-  Minus, 
   ShoppingCart, 
   Utensils,
   GlassWater,
@@ -40,12 +37,10 @@ import { productService, db } from '../../services';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
+import { ProductCard } from '../../components/ProductCard';
 import { useCustomerHeader } from '../../components/CustomerHeader';
 import { CategoriesSidebar } from '../../components/CategoriesSidebar';
 import { AuthModal } from '../../components/AuthModal';
-import { getProductImageSource } from '../../utils/productImage';
-import { truncateProductName } from '../../utils/productName';
-const DEFAULT_PRODUCT_IMAGE = require('../../../assets/agua-sanitaria.png');
 const IS_WEB = require('react-native').Platform.OS === 'web';
 
 const MOBILE_BREAKPOINT = 768;
@@ -64,13 +59,6 @@ interface Props {
 interface Section {
   title: string;
   items: ProductWithFinalPrice[];
-}
-
-interface CartButtonsOverlayProps {
-  product: ProductWithFinalPrice;
-  cartQty: number;
-  onQuickAdd: () => void;
-  onQuantityChange: (newQty: number, e?: any) => void;
 }
 
 // Mapeamento de categorias para ícones e cores
@@ -92,53 +80,6 @@ const getCategoryIcon = (category: string) => {
   return iconMap[category] || { Icon: Package, color: '#757575' };
 };
 
-const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
-  product,
-  cartQty,
-  onQuickAdd,
-  onQuantityChange,
-}) => {
-  const inCart = cartQty > 0;
-
-  if (!inCart) {
-    return (
-      <Pressable
-        style={(state: { pressed: boolean; hovered?: boolean }) => [
-          styles.quickAddButtonOverlay,
-          state.hovered && styles.quickAddButtonOverlayHover,
-        ]}
-        onPress={(e) => {
-          e?.stopPropagation?.();
-          onQuickAdd();
-        }}
-      >
-        <Plus size={18} color="#fff" />
-      </Pressable>
-    );
-  }
-
-  return (
-    <View style={styles.quantityControlOverlay}>
-      <View style={styles.quantityControlWrap}>
-        <TouchableOpacity
-          style={styles.quantityControlButton}
-          onPress={(e) => onQuantityChange(cartQty - 1, e)}
-        >
-          <Minus size={16} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.quantityControlValue}>{cartQty}</Text>
-        <TouchableOpacity
-          style={styles.quantityControlButton}
-          onPress={(e) => onQuantityChange(cartQty + 1, e)}
-          disabled={cartQty >= product.stock}
-        >
-          <Plus size={16} color={cartQty >= product.stock ? "#888" : "#fff"} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
 export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { marketId, marketName } = route.params;
   const [products, setProducts] = useState<ProductWithFinalPrice[]>([]);
@@ -153,7 +94,6 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const isMobile = width < MOBILE_BREAKPOINT;
   const [categoryPage, setCategoryPage] = useState<Record<string, number>>({});
-  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithFinalPrice | null>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [authModalVisible, setAuthModalVisible] = useState(false);
@@ -342,71 +282,19 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
     });
   };
 
-  const imageSize = itemSize - 24;
-  const cardMinHeight = imageSize + 64;
-
   const renderProductCard = (product: ProductWithFinalPrice) => {
     const cartQty = items.find((i) => i.product.id === product.id)?.quantity ?? 0;
-    const inCart = cartQty > 0;
-
     return (
-      <View
+      <ProductCard
         key={product.id}
-        style={[
-          styles.productCard,
-          { width: itemSize, minHeight: cardMinHeight },
-          hoveredCardId === product.id && styles.productCardHover,
-        ]}
-        {...({
-          onMouseEnter: () => setHoveredCardId(product.id),
-          onMouseLeave: (e: any) => {
-            const related = e?.nativeEvent?.relatedTarget;
-            const current = e?.currentTarget;
-            if (current && related && current.contains(related)) return;
-            setHoveredCardId(null);
-          },
-        } as any)}
-      >
-        <TouchableOpacity
-          style={styles.productCardTouchable}
-          onPress={() => handlePressCard(product)}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.imageWrapper, { width: imageSize, height: imageSize }]}>
-            <Image
-              source={getProductImageSource(product.images?.[0], DEFAULT_PRODUCT_IMAGE)}
-              style={[styles.productImage, { width: imageSize, height: imageSize }]}
-              resizeMode="cover"
-            />
-            <CartButtonsOverlay
-              product={product}
-              cartQty={cartQty}
-              onQuickAdd={() => handleQuickAdd(product)}
-              onQuantityChange={(newQty, e) => handleQuantityChange(product, newQty, e)}
-            />
-          </View>
-          <View style={styles.originalPriceRow}>
-            {product.discount > 0 && (
-              <>
-                <Text style={styles.originalPrice}>R$ {product.price.toFixed(2)} un</Text>
-                <Text style={styles.discountPercent}> -{product.discount}%</Text>
-              </>
-            )}
-          </View>
-          <Text style={isMobile ? styles.productPriceMobile : styles.productPrice}>
-            R$ {product.finalPrice.toFixed(2)} un
-          </Text>
-          <View style={styles.productNameSlot}>
-            <Text
-              style={isMobile ? styles.productNameMobile : styles.productName}
-              numberOfLines={3}
-              ellipsizeMode="tail"
-            >
-              {truncateProductName(product.name)}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+        product={product}
+        cartQty={cartQty}
+        size={itemSize}
+        isMobile={isMobile}
+        onPress={handlePressCard}
+        onQuickAdd={handleQuickAdd}
+        onQuantityChange={handleQuantityChange}
+      />
     );
   };
 
@@ -1286,149 +1174,6 @@ const styles = StyleSheet.create({
     paddingRight: PEEK_WIDTH,
   },
   carouselCardWrap: {
-  },
-  productCard: {
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  productCardHover: {
-    borderColor: '#555',
-  },
-  productCardTouchable: {
-    flex: 1,
-    minWidth: 0,
-  },
-  imageWrapper: {
-    position: 'relative',
-  },
-  productImage: {
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-  quantityControlOverlay: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-  },
-  quantityControlWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#364661',
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  quantityControlButton: {
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quantityControlSymbol: {
-    fontFamily: 'BricolageGrotesque_700Bold',
-    color: '#fff',
-    fontSize: 16,
-  },
-  quantityControlSymbolDisabled: {
-    opacity: 0.4,
-  },
-  quantityControlValue: {
-    fontFamily: 'BricolageGrotesque_700Bold',
-    color: '#fff',
-    fontSize: 13,
-    minWidth: 24,
-    textAlign: 'center',
-  },
-  originalPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    minHeight: 18,
-    marginBottom: 2,
-  },
-  originalPrice: {
-    fontFamily: 'BricolageGrotesque_400Regular',
-    fontSize: 11,
-    color: '#888',
-    textDecorationLine: 'line-through',
-  },
-  discountPercent: {
-    fontFamily: 'BricolageGrotesque_700Bold',
-    fontSize: 11,
-    color: '#000',
-    backgroundColor: '#d9e7f2',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#b8d4e8',
-    marginLeft: 8,
-  },
-  productPrice: {
-    fontFamily: 'BricolageGrotesque_700Bold',
-    fontSize: 14,
-    color: '#000',
-    marginBottom: 2,
-  },
-  productPriceMobile: {
-    fontFamily: 'BricolageGrotesque_700Bold',
-    fontSize: 15,
-    color: '#000',
-    marginBottom: 2,
-  },
-  productNameSlot: {
-    height: 52,
-    justifyContent: 'center',
-    overflow: 'hidden',
-    minWidth: 0,
-  },
-  productName: {
-    fontFamily: 'BricolageGrotesque_400Regular',
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
-  productNameMobile: {
-    fontFamily: 'BricolageGrotesque_400Regular',
-    fontSize: 15,
-    color: '#333',
-    fontWeight: '500',
-  },
-  quickAddButtonOverlay: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#364661',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickAddButtonOverlayHover: {
-    backgroundColor: '#4a5d7a',
-  },
-  quickAddButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#364661',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickAddButtonText: {
-    fontFamily: 'BricolageGrotesque_700Bold',
-    color: '#fff',
-    fontSize: 18,
-    lineHeight: 20,
   },
   emptyCard: {
     backgroundColor: 'transparent',
