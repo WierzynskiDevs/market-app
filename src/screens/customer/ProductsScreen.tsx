@@ -12,6 +12,7 @@ import {
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Platform,
 } from 'react-native';
 import { 
   ArrowLeft, 
@@ -45,6 +46,7 @@ import { AuthModal } from '../../components/AuthModal';
 import { getProductImageSource } from '../../utils/productImage';
 import { truncateProductName } from '../../utils/productName';
 const DEFAULT_PRODUCT_IMAGE = require('../../../assets/agua-sanitaria.png');
+const IS_WEB = Platform.OS === 'web';
 
 const MOBILE_BREAKPOINT = 768;
 const ITEMS_PER_VIEW_MOBILE = 3;
@@ -159,9 +161,33 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [allMarkets, setAllMarkets] = useState<Market[]>([]);
+  const marketDropdownWrapperIdRef = useRef('market-dd-' + Math.random().toString(36).slice(2));
+  const userDropdownWrapperIdRef = useRef('user-dd-' + Math.random().toString(36).slice(2));
   const categoryScrollRefs = useRef<Record<string, ScrollView | null>>({});
   const bannerScrollRef = useRef<ScrollView | null>(null);
   const { user, logout } = useAuth();
+
+  // Fechar dropdown Loja ao clicar fora (web: listener no document; mobile usa overlay)
+  useEffect(() => {
+    if (!IS_WEB || !marketDropdownOpen) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const el = document.getElementById(marketDropdownWrapperIdRef.current);
+      if (el && !el.contains(e.target as Node)) setMarketDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [marketDropdownOpen]);
+
+  // Fechar dropdown Usuário ao clicar fora (web: listener no document; mobile usa overlay)
+  useEffect(() => {
+    if (!IS_WEB || !userDropdownOpen) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const el = document.getElementById(userDropdownWrapperIdRef.current);
+      if (el && !el.contains(e.target as Node)) setUserDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [userDropdownOpen]);
 
   // Define o mercado selecionado no contexto do carrinho (setMarket estável via useCallback no contexto)
   useEffect(() => {
@@ -412,57 +438,59 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
                   </View>
                   <Text style={styles.logoText}>MARKET</Text>
                 </View>
-                <View style={styles.marketSelectorContainer}>
-                  <Pressable
-                    style={(state: { pressed: boolean; hovered?: boolean }) => [
-                      styles.marketSelectorButton,
-                      (state.hovered || state.pressed) && styles.marketSelectorButtonHover,
-                    ]}
-                    onPress={() => setMarketDropdownOpen(!marketDropdownOpen)}
-                  >
-                    <Text style={styles.marketSelectorLabel}>Loja:</Text>
-                    <Text style={styles.marketSelectorName} numberOfLines={1}>{marketName}</Text>
-                    <ChevronDown size={18} color="#666" />
-                  </Pressable>
-                  {marketDropdownOpen && (
-                    <View style={styles.marketDropdownMenu}>
-                      <ScrollView style={styles.marketDropdownScroll} showsVerticalScrollIndicator={true}>
-                        {allMarkets.map((market) => (
+                <View nativeID={marketDropdownWrapperIdRef.current} style={styles.marketDropdownWrapper}>
+                  <View style={styles.marketSelectorContainer}>
+                    <Pressable
+                      style={(state: { pressed: boolean; hovered?: boolean }) => [
+                        styles.marketSelectorButton,
+                        (state.hovered || state.pressed) && styles.marketSelectorButtonHover,
+                      ]}
+                      onPress={() => setMarketDropdownOpen(!marketDropdownOpen)}
+                    >
+                      <Text style={styles.marketSelectorLabel}>Loja:</Text>
+                      <Text style={styles.marketSelectorName} numberOfLines={1}>{marketName}</Text>
+                      <ChevronDown size={18} color="#666" />
+                    </Pressable>
+                    {marketDropdownOpen && (
+                      <View style={styles.marketDropdownMenu}>
+                        <ScrollView style={styles.marketDropdownScroll} showsVerticalScrollIndicator={true}>
+                          {allMarkets.map((market) => (
+                            <Pressable
+                              key={market.id}
+                              style={(state: { pressed: boolean; hovered?: boolean }) => [
+                                styles.marketDropdownItem,
+                                market.id === marketId && styles.marketDropdownItemActive,
+                                state.hovered && styles.marketDropdownItemHover,
+                              ]}
+                              onPress={() => handleChangeMarket(market)}
+                            >
+                              <Text style={[
+                                styles.marketDropdownItemName,
+                                market.id === marketId && styles.marketDropdownItemNameActive,
+                              ]}>
+                                {market.name}
+                              </Text>
+                              <Text style={styles.marketDropdownItemLocation}>
+                                {market.city} - {market.neighborhood}
+                              </Text>
+                            </Pressable>
+                          ))}
                           <Pressable
-                            key={market.id}
                             style={(state: { pressed: boolean; hovered?: boolean }) => [
-                              styles.marketDropdownItem,
-                              market.id === marketId && styles.marketDropdownItemActive,
-                              state.hovered && styles.marketDropdownItemHover,
+                              styles.marketDropdownViewAll,
+                              state.hovered && styles.marketDropdownViewAllHover,
                             ]}
-                            onPress={() => handleChangeMarket(market)}
+                            onPress={() => {
+                              setMarketDropdownOpen(false);
+                              navigation.navigate('Markets');
+                            }}
                           >
-                            <Text style={[
-                              styles.marketDropdownItemName,
-                              market.id === marketId && styles.marketDropdownItemNameActive,
-                            ]}>
-                              {market.name}
-                            </Text>
-                            <Text style={styles.marketDropdownItemLocation}>
-                              {market.city} - {market.neighborhood}
-                            </Text>
+                            <Text style={styles.marketDropdownViewAllText}>Ver todos os mercados</Text>
                           </Pressable>
-                        ))}
-                        <Pressable
-                          style={(state: { pressed: boolean; hovered?: boolean }) => [
-                            styles.marketDropdownViewAll,
-                            state.hovered && styles.marketDropdownViewAllHover,
-                          ]}
-                          onPress={() => {
-                            setMarketDropdownOpen(false);
-                            navigation.navigate('Markets');
-                          }}
-                        >
-                          <Text style={styles.marketDropdownViewAllText}>Ver todos os mercados</Text>
-                        </Pressable>
-                      </ScrollView>
-                    </View>
-                  )}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
             ),
@@ -475,54 +503,56 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
             ),
             headerRight: () => (
               <View style={styles.headerRightContainer}>
-                <View style={styles.userButtonContainer}>
-                  <Pressable
-                    style={(state: { pressed: boolean; hovered?: boolean }) => [
-                      styles.headerUserButton,
-                      (state.hovered || state.pressed) && styles.headerUserButtonHover,
-                    ]}
-                    onPress={() => {
-                      if (user) {
-                        setUserDropdownOpen(!userDropdownOpen);
-                      } else {
-                        setAuthModalVisible(true);
-                      }
-                    }}
-                  >
-                    <User size={20} color="#2196F3" />
-                    <Text style={styles.headerUserText}>
-                      {user ? user.name.split(' ')[0] : 'Entrar'}
-                    </Text>
-                  </Pressable>
-                  {user && userDropdownOpen && (
-                    <View style={styles.userDropdownMenu}>
-                      <Pressable
-                        style={(state: { pressed: boolean; hovered?: boolean }) => [
-                          styles.userDropdownItem,
-                          state.hovered && styles.userDropdownItemHover,
-                        ]}
-                        onPress={() => {
-                          setUserDropdownOpen(false);
-                          navigation.navigate('Account');
-                        }}
-                      >
-                        <Text style={styles.userDropdownItemText}>Minha Conta</Text>
-                      </Pressable>
-                      <Pressable
-                        style={(state: { pressed: boolean; hovered?: boolean }) => [
-                          styles.userDropdownItem,
-                          styles.userDropdownItemDanger,
-                          state.hovered && styles.userDropdownItemDangerHover,
-                        ]}
-                        onPress={() => {
-                          setUserDropdownOpen(false);
-                          logout();
-                        }}
-                      >
-                        <Text style={styles.userDropdownItemTextDanger}>Sair</Text>
-                      </Pressable>
-                    </View>
-                  )}
+                <View nativeID={userDropdownWrapperIdRef.current} style={styles.userDropdownWrapper}>
+                  <View style={styles.userButtonContainer}>
+                    <Pressable
+                      style={(state: { pressed: boolean; hovered?: boolean }) => [
+                        styles.headerUserButton,
+                        (state.hovered || state.pressed) && styles.headerUserButtonHover,
+                      ]}
+                      onPress={() => {
+                        if (user) {
+                          setUserDropdownOpen(!userDropdownOpen);
+                        } else {
+                          setAuthModalVisible(true);
+                        }
+                      }}
+                    >
+                      <User size={20} color="#2196F3" />
+                      <Text style={styles.headerUserText}>
+                        {user ? user.name.split(' ')[0] : 'Entrar'}
+                      </Text>
+                    </Pressable>
+                    {user && userDropdownOpen && (
+                      <View style={styles.userDropdownMenu}>
+                        <Pressable
+                          style={(state: { pressed: boolean; hovered?: boolean }) => [
+                            styles.userDropdownItem,
+                            state.hovered && styles.userDropdownItemHover,
+                          ]}
+                          onPress={() => {
+                            setUserDropdownOpen(false);
+                            navigation.navigate('Account');
+                          }}
+                        >
+                          <Text style={styles.userDropdownItemText}>Minha Conta</Text>
+                        </Pressable>
+                        <Pressable
+                          style={(state: { pressed: boolean; hovered?: boolean }) => [
+                            styles.userDropdownItem,
+                            styles.userDropdownItemDanger,
+                            state.hovered && styles.userDropdownItemDangerHover,
+                          ]}
+                          onPress={() => {
+                            setUserDropdownOpen(false);
+                            logout();
+                          }}
+                        >
+                          <Text style={styles.userDropdownItemTextDanger}>Sair</Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  </View>
                 </View>
                 <Pressable
                   style={(state: { pressed: boolean; hovered?: boolean }) => [
@@ -762,7 +792,7 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       ) : (
         <View style={styles.webRow}>
-          {(marketDropdownOpen || userDropdownOpen) && (
+          {!IS_WEB && (marketDropdownOpen || userDropdownOpen) && (
             <Pressable
               style={styles.dropdownOverlay}
               onPress={() => {
@@ -960,6 +990,9 @@ const styles = StyleSheet.create({
     color: '#2196F3',
     letterSpacing: 1,
   },
+  marketDropdownWrapper: {
+    position: 'relative',
+  },
   marketSelectorContainer: {
     marginLeft: 16,
     position: 'relative',
@@ -1129,6 +1162,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#2196F3',
+  },
+  userDropdownWrapper: {
+    position: 'relative',
   },
   userButtonContainer: {
     position: 'relative',
