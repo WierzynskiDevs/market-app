@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Pressable, StyleSheet, Dimensions } from 'react-native';
+import { View, TextInput, TouchableOpacity, Pressable, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Search } from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../models';
 import { useDebouncedValue, SEARCH_DEBOUNCE_MS } from '../hooks/useDebouncedValue';
 import { SearchSuggestionsDropdown } from './SearchSuggestionsDropdown';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const IS_WEB = Platform.OS === 'web';
 
 interface SearchBarWithSuggestionsProps {
   products: ProductWithFinalPrice[];
@@ -15,7 +16,8 @@ interface SearchBarWithSuggestionsProps {
 
 /**
  * Barra de busca com sugestões que mantém o estado internamente.
- * O dropdown só fecha ao clicar fora (na overlay), não ao interagir com os botões do dropdown.
+ * Fecha ao clicar fora: na web usa listener no document (sem overlay, hovers normais);
+ * no mobile usa overlay transparente.
  */
 export const SearchBarWithSuggestions: React.FC<SearchBarWithSuggestionsProps> = ({
   products,
@@ -28,6 +30,7 @@ export const SearchBarWithSuggestions: React.FC<SearchBarWithSuggestionsProps> =
   const [wrapperWidth, setWrapperWidth] = useState<number | null>(null);
   const [overlayOffset, setOverlayOffset] = useState({ x: 0, y: 0 });
   const wrapperRef = useRef<View>(null);
+  const wrapperIdRef = useRef('search-bar-wrapper-' + Math.random().toString(36).slice(2));
 
   const debouncedSearchText = useDebouncedValue(searchText, SEARCH_DEBOUNCE_MS);
 
@@ -51,12 +54,22 @@ export const SearchBarWithSuggestions: React.FC<SearchBarWithSuggestionsProps> =
 
   const handleBlur = useCallback(() => {
     setIsFocused(false);
-    // Não fechamos o dropdown no blur — só ao clicar na overlay (fora)
   }, []);
 
   const closeDropdown = useCallback(() => {
     setDropdownVisible(false);
   }, []);
+
+  // Padrão "click outside": listener no document (só na web). Sem overlay, então hovers dos botões fora funcionam.
+  useEffect(() => {
+    if (!IS_WEB || !showDropdown) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const el = document.getElementById(wrapperIdRef.current);
+      if (el && !el.contains(e.target as Node)) closeDropdown();
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [showDropdown, closeDropdown]);
 
   const measureWrapper = useCallback(() => {
     wrapperRef.current?.measureInWindow((x, y) => {
@@ -65,7 +78,7 @@ export const SearchBarWithSuggestions: React.FC<SearchBarWithSuggestionsProps> =
   }, []);
 
   useEffect(() => {
-    if (showDropdown) measureWrapper();
+    if (!IS_WEB && showDropdown) measureWrapper();
   }, [showDropdown, measureWrapper]);
 
   const handleSubmit = useCallback(() => {
@@ -79,12 +92,13 @@ export const SearchBarWithSuggestions: React.FC<SearchBarWithSuggestionsProps> =
   return (
     <View
       ref={wrapperRef}
+      nativeID={wrapperIdRef.current}
       style={styles.wrapper}
       onLayout={(e) => setWrapperWidth(e.nativeEvent.layout.width)}
       collapsable={false}
     >
-      {/* Overlay em tela cheia: ao clicar, fecha o dropdown. Fica atrás da barra e do dropdown (zIndex menor). */}
-      {showDropdown && (
+      {/* Overlay só no mobile (na web usamos listener no document para não bloquear hovers). */}
+      {!IS_WEB && showDropdown && (
         <Pressable
           style={[
             styles.overlay,
