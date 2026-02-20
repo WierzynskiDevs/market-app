@@ -1,14 +1,13 @@
 import React from 'react';
-import { View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useBannerCarousel } from './hooks/useBannerCarousel';
 import type { BannerItem } from './hooks/useBannerCarousel';
 
 const DEFAULT_BANNERS: BannerItem[] = [
-  { id: 1, color: '#2196F3' },
-  { id: 2, color: '#F44336' },
-  { id: 3, color: '#4CAF50' },
-  { id: 4, color: '#FF9800' },
+  { id: 1, image: require('../../../assets/Banners/Mango_Loco.png') },
+  { id: 2, image: require('../../../assets/Banners/Rio_Punch.png') },
+  { id: 3, image: require('../../../assets/Banners/The_Doctor.png') },
 ];
 
 const BANNER_HEIGHT = 240;
@@ -39,10 +38,13 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({
         scrollEventThrottle={16}
       >
         {banners.map((banner) => (
-          <View
-            key={banner.id}
-            style={[styles.slide, { width, backgroundColor: banner.color }]}
-          />
+          <View key={banner.id} style={[styles.slide, { width }]}>
+            <Image
+              source={banner.image}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+          </View>
         ))}
       </ScrollView>
       <View style={styles.controls}>
@@ -84,6 +86,12 @@ const styles = StyleSheet.create({
   },
   slide: {
     height: BANNER_HEIGHT,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
     borderRadius: 12,
   },
   controls: {

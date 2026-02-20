@@ -5,7 +5,7 @@ const AUTO_PLAY_INTERVAL_MS = 10000;
 
 export interface BannerItem {
   id: number;
-  color: string;
+  image: number;
 }
 
 export function useBannerCarousel(width: number, banners: BannerItem[]) {
