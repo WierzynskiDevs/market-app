@@ -14,26 +14,20 @@ export function getProductImageSource(
   fallback: number
 ): ImageSourceProp {
   if (src === undefined || src === DEFAULT_IMAGE_KEY) {
-    console.log('[getProductImageSource] Usando fallback, src=', src);
     return fallback;
   }
-  
-  // Se src é um número (require() retornar um número)
+
   if (typeof src === 'number') {
     return src;
   }
-  
-  // Se src é string, envolver em {uri: ...}
+
   if (typeof src === 'string') {
     return { uri: src };
   }
-  
-  // Se src já é um objeto (ex: {uri, width, height} do require())
+
   if (typeof src === 'object' && src !== null && 'uri' in src) {
-    console.log('[getProductImageSource] Objeto com URI detectado, passando direto:', src);
     return src as ImageSourceProp;
   }
-  
-  console.log('[getProductImageSource] Caso não tratado, usando fallback. src=', src);
+
   return fallback;
 }

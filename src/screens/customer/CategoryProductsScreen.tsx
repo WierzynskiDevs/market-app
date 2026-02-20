@@ -10,19 +10,17 @@ import {
   Alert,
   useWindowDimensions,
   ScrollView,
-  TextInput,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { ArrowLeft, Plus, Minus, ShoppingCart, ChevronLeft, ChevronRight, ChevronDown, Search, ShoppingBag, User, Utensils, GlassWater, Sparkles, ShowerHead, Croissant, Drumstick, Apple, Sandwich, Milk, Package, Snowflake } from 'lucide-react-native';
+import { ArrowLeft, Plus, Minus, ShoppingCart, ChevronLeft, ChevronRight, ChevronDown, ShoppingBag, User, Utensils, GlassWater, Sparkles, ShowerHead, Croissant, Drumstick, Apple, Sandwich, Milk, Package, Snowflake } from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../../models';
 import { productService } from '../../services';
 import { useCart } from '../../contexts/CartContext';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
-import { SearchSuggestionsDropdown } from '../../components/SearchSuggestionsDropdown';
+import { SearchBarWithSuggestions } from '../../components/SearchBarWithSuggestions';
 import { getProductImageSource } from '../../utils/productImage';
 import { truncateProductName } from '../../utils/productName';
-
 const DEFAULT_PRODUCT_IMAGE = require('../../../assets/agua-sanitaria.png');
 
 const MOBILE_BREAKPOINT = 768;
@@ -115,54 +113,16 @@ const CartButtonsOverlay: React.FC<CartButtonsOverlayProps> = ({
   );
 };
 
-const SearchBar: React.FC<{
-  searchText: string;
-  onChangeText: (text: string) => void;
-  placeholder?: string;
-  onSearchSubmit?: () => void;
-}> = ({ searchText, onChangeText, placeholder = 'Buscar produtos...', onSearchSubmit }) => {
-  const [isFocused, setIsFocused] = useState(false);
-
-  const handleSubmit = () => {
-    if (searchText.trim().length >= 2 && onSearchSubmit) onSearchSubmit();
-  };
-
-  return (
-    <View style={styles.headerSearchWrapper}>
-      <View style={[styles.headerSearchContainer, isFocused && styles.headerSearchContainerFocused]}>
-        <TouchableOpacity
-          onPress={handleSubmit}
-          style={styles.searchIconTouchable}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Search size={18} color={isFocused ? "#2196F3" : "#888"} style={[styles.searchIcon, { outlineStyle: 'none', outlineWidth: 0 } as any]} />
-        </TouchableOpacity>
-        <TextInput
-          style={[styles.headerSearchInput, { outlineStyle: 'none', outlineWidth: 0, outlineColor: 'transparent' } as any]}
-          placeholder={placeholder}
-          value={searchText}
-          onChangeText={onChangeText}
-          placeholderTextColor="#888"
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          onSubmitEditing={handleSubmit}
-          returnKeyType="search"
-          autoCorrect={false}
-          autoCapitalize="none"
-          selectionColor="#2196F3"
-          editable={true}
-        />
-      </View>
-    </View>
-  );
-};
-
 export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { marketId, marketName, category } = route.params;
   const [products, setProducts] = useState<ProductWithFinalPrice[]>([]);
-  const [searchText, setSearchText] = useState('');
-  const [searchBarWidth, setSearchBarWidth] = useState<number | null>(null);
+
+  const handleSearchSubmit = useCallback((query: string) => {
+    if (query.length >= 2) {
+      navigation.navigate('SearchResults', { marketId, marketName, searchQuery: query });
+    }
+  }, [marketId, marketName, navigation]);
+
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithFinalPrice | null>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
@@ -262,14 +222,6 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
     navigation.navigate('Products', { marketId, marketName });
   };
 
-  const handleSearchSubmit = useCallback(() => {
-    const q = searchText.trim();
-    if (q.length >= 2) {
-      navigation.navigate('SearchResults', { marketId, marketName, searchQuery: q });
-      setSearchText('');
-    }
-  }, [searchText, marketId, marketName, navigation]);
-
   const goToPrevPage = useCallback((sectionTitle: string) => {
     const currentPage = categoryPage[sectionTitle] ?? 0;
     const newPage = Math.max(0, currentPage - 1);
@@ -344,34 +296,10 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
                 </View>
                 <View style={styles.mobileSearchRow}>
                   <View style={styles.mobileSearchContainer}>
-                    <TouchableOpacity
-                      onPress={() => {
-                      if (searchText.trim().length >= 2) {
-                        navigation.navigate('SearchResults', { marketId, marketName, searchQuery: searchText.trim() });
-                        setSearchText('');
-                      }
-                    }}
-                      style={styles.searchIconTouchable}
-                      activeOpacity={0.7}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Search size={18} color="#888" style={[styles.searchIcon, { outlineStyle: 'none', outlineWidth: 0 } as any]} />
-                    </TouchableOpacity>
-                    <TextInput
-                      style={[styles.headerSearchInput, styles.mobileSearchInput, { outlineStyle: 'none', outlineWidth: 0, outlineColor: 'transparent' } as any]}
+                    <SearchBarWithSuggestions
+                      products={allMarketProducts}
+                      onSearchSubmit={handleSearchSubmit}
                       placeholder="Leite, arroz, pão, vinho, frutas..."
-                      value={searchText}
-                      onChangeText={setSearchText}
-                      placeholderTextColor="#999"
-                      selectionColor="#2196F3"
-                      editable={true}
-                      onSubmitEditing={() => {
-                      if (searchText.trim().length >= 2) {
-                        navigation.navigate('SearchResults', { marketId, marketName, searchQuery: searchText.trim() });
-                        setSearchText('');
-                      }
-                    }}
-                      returnKeyType="search"
                     />
                   </View>
                 </View>
@@ -421,11 +349,8 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
             headerTitleAlign: 'center',
             headerTitleContainerStyle: { flex: 1, left: 0, right: 0, justifyContent: 'center', alignItems: 'center' },
             headerTitle: () => (
-              <View
-                style={styles.headerSearchBarWrap}
-                onLayout={(e) => setSearchBarWidth(e.nativeEvent.layout.width)}
-              >
-                <SearchBar searchText={searchText} onChangeText={setSearchText} placeholder="Buscar produtos..." onSearchSubmit={handleSearchSubmit} />
+              <View style={styles.headerSearchBarWrap}>
+                <SearchBarWithSuggestions products={allMarketProducts} onSearchSubmit={handleSearchSubmit} />
               </View>
             ),
             headerRight: () => (
@@ -448,7 +373,7 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
             ),
           }
     );
-  }, [navigation, marketName, category, getTotalItems, isMobile, categories, searchText, openCartModal, handleSearchSubmit]);
+  }, [navigation, marketName, category, getTotalItems, isMobile, categories, openCartModal, handleSearchSubmit, allMarketProducts]);
 
   // Lista da categoria por subcategoria (mesmo formato da ProductsScreen: sections com items)
   const sections = useMemo((): Section[] => {
@@ -467,17 +392,6 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
       items,
     }));
   }, [products, category]);
-
-  // Resultados da pesquisa: busca no mock inteiro do mercado (mesmos produtos da tela inicial)
-  const searchResults = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    if (query.length < 2) return [];
-    return allMarketProducts.filter(
-      (p) =>
-        p.name.toLowerCase().includes(query) ||
-        (p.category && p.category.toLowerCase().includes(query)),
-    );
-  }, [allMarketProducts, searchText]);
 
   // Map productId -> quantity para evitar O(n) items.find() em cada card
   const cartQtyMap = useMemo(() => {
@@ -789,13 +703,6 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
         </View>
       )}
       </View>
-      {searchText.trim().length >= 2 && (
-        <View style={styles.searchDropdownWrap} pointerEvents="box-none">
-          <View style={[styles.searchDropdownInner, searchBarWidth != null && { width: searchBarWidth }]}>
-            <SearchSuggestionsDropdown searchTerm={searchText.trim()} results={searchResults} />
-          </View>
-        </View>
-      )}
       <ProductDetailModal
         visible={!!selectedProduct}
         product={selectedProduct}
