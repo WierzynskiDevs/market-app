@@ -16,6 +16,7 @@ import {
 import { Trash, ShoppingCart, X, MoreVertical, Plus, Minus } from 'lucide-react-native';
 import { useCart } from '../contexts/CartContext';
 import { getProductImageSource } from '../utils/productImage';
+import { truncateProductName } from '../utils/productName';
 import type { CartItem } from '../contexts/CartContext';
 
 const DEFAULT_PRODUCT_IMAGE = require('../../assets/agua-sanitaria.png');
@@ -136,7 +137,7 @@ export const CartModal: React.FC = () => {
         </View>
         <View style={styles.itemContent}>
           <Text style={styles.itemName} numberOfLines={2}>
-            {item.product.name}
+            {truncateProductName(item.product.name)}
           </Text>
           <View style={styles.priceRow}>
             {item.product.discount > 0 ? (

@@ -180,7 +180,7 @@ export const PRODUCT_IMAGES: Record<string, number> = {
   'Bolinho Bauducco 40g Laranja': require('../../assets/Padaria/fd5e7ae1-BolinhoBauducco40gLaranja_7891962067889_1.jpg.webp'),
 
   // REFRIGERADOS
-  'Pastel Apertivo Romanha 200g Queijo': require('../../assets/Refrigerados/09cd18a2-PastelAperitivoRomanha200gQueijo_7896020900535_1.jpg.webp'),
+  'Pastel Aperitivo Romanha 200g Queijo': require('../../assets/Refrigerados/09cd18a2-PastelAperitivoRomanha200gQueijo_7896020900535_1.jpg.webp'),
   'Massa para Lasanha AmaBene 500g': require('../../assets/Refrigerados/1796f4df-MassaparaLasanhaAmaBene500g_7898017760061_1.jpg.webp'),
   'Massa para Pastel Trindade 400g Disco': require('../../assets/Refrigerados/1cfd0917-MassaparaPastelTrindade400gDisco_7898918132073_1.jpg.webp'),
   'Massa Recheada Romanha 400g Ravil Carne': require('../../assets/Refrigerados/1d8cb58c-MassaRecheadaRomanha400gRaviliCarne_7896020900474_1.jpg.webp'),

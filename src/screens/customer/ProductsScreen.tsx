@@ -35,6 +35,7 @@ import {
   ShoppingBag,
   Package,
   User,
+  Snowflake,
 } from 'lucide-react-native';
 import { ProductWithFinalPrice, Market } from '../../models';
 import { productService, db } from '../../services';
@@ -44,6 +45,7 @@ import { ProductDetailModal } from '../../components/ProductDetailModal';
 import { SearchSuggestionsDropdown } from '../../components/SearchSuggestionsDropdown';
 import { AuthModal } from '../../components/AuthModal';
 import { getProductImageSource } from '../../utils/productImage';
+import { truncateProductName } from '../../utils/productName';
 
 const DEFAULT_PRODUCT_IMAGE = require('../../../assets/agua-sanitaria.png');
 
@@ -126,6 +128,7 @@ const getCategoryIcon = (category: string) => {
     'Padaria': { Icon: Croissant, color: '#FFC107' },
     'Açougue': { Icon: Drumstick, color: '#F44336' },
     'Hortifruti': { Icon: Apple, color: '#4CAF50' },
+    'Refrigerados': { Icon: Snowflake, color: '#00ACC1' },
     'Frios': { Icon: Sandwich, color: '#FFEB3B' },
     'Laticínios': { Icon: Milk, color: '#E0E0E0' },
     'Mercearia': { Icon: ShoppingBag, color: '#795548' },
@@ -712,7 +715,7 @@ export const ProductsScreen: React.FC<Props> = ({ route, navigation }) => {
               numberOfLines={3}
               ellipsizeMode="tail"
             >
-              {product.name}
+              {truncateProductName(product.name)}
             </Text>
           </View>
         </TouchableOpacity>
@@ -1753,7 +1756,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   productNameSlot: {
-    minHeight: 36,
+    height: 52,
     justifyContent: 'center',
     overflow: 'hidden',
     minWidth: 0,

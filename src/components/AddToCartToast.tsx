@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useCart } from '../contexts/CartContext';
 import { getProductImageSource } from '../utils/productImage';
+import { truncateProductName } from '../utils/productName';
 
 const DEFAULT_PRODUCT_IMAGE = require('../../assets/agua-sanitaria.png');
 
@@ -92,7 +93,7 @@ export const AddToCartToast: React.FC = () => {
         </View>
         <View style={styles.details}>
           <Text style={styles.productName} numberOfLines={1}>
-            {product.name}
+            {truncateProductName(product.name)}
           </Text>
           <Text style={styles.productDesc} numberOfLines={1}>
             {displaySecondLine}

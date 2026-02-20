@@ -1506,7 +1506,7 @@ const REAL_PRODUCTS: Array<{
 
   // REFRIGERADOS
   {
-    name: 'Pastel Apertivo Romanha 200g Queijo',
+    name: 'Pastel Aperitivo Romanha 200g Queijo',
     description: 'Pastel congelado recheado com queijo',
     price: 7.80,
     discount: 0,
@@ -1742,9 +1742,10 @@ function generateProducts(marketId: string, count: number): Product[] {
   return products;
 }
 
-// Gerar produtos para cada mercado
+// Gerar produtos para cada mercado (usa todos os REAL_PRODUCTS para incluir todas as categorias)
+const TOTAL_REAL_PRODUCTS = REAL_PRODUCTS.length;
 export const PRODUCTS_MOCK: Product[] = [
-  ...generateProducts('market-a', 100),
-  ...generateProducts('market-b', 100),
-  ...generateProducts('market-c', 100),
+  ...generateProducts('market-a', TOTAL_REAL_PRODUCTS),
+  ...generateProducts('market-b', TOTAL_REAL_PRODUCTS),
+  ...generateProducts('market-c', TOTAL_REAL_PRODUCTS),
 ];

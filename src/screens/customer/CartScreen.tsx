@@ -12,6 +12,7 @@ import { Trash2, Plus, Minus } from 'lucide-react-native';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService } from '../../services';
+import { truncateProductName } from '../../utils/productName';
 
 interface Props {
   navigation: any;
@@ -65,7 +66,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
   const renderItem = ({ item }: any) => (
     <View style={styles.cartItem}>
       <View style={styles.itemInfo}>
-        <Text style={styles.itemName}>{item.product.name}</Text>
+        <Text style={styles.itemName}>{truncateProductName(item.product.name)}</Text>
         <Text style={styles.itemPrice}>R$ {item.product.finalPrice.toFixed(2)}</Text>
         <Text style={styles.itemStock}>Estoque: {item.product.stock}</Text>
       </View>

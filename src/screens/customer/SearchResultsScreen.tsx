@@ -13,13 +13,14 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
-import { ArrowLeft, Plus, Minus, ShoppingCart, ChevronDown, Search, ShoppingBag, User, Utensils, GlassWater, Sparkles, ShowerHead, Croissant, Drumstick, Apple, Sandwich, Milk, Package } from 'lucide-react-native';
+import { ArrowLeft, Plus, Minus, ShoppingCart, ChevronDown, Search, ShoppingBag, User, Utensils, GlassWater, Sparkles, ShowerHead, Croissant, Drumstick, Apple, Sandwich, Milk, Package, Snowflake } from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../../models';
 import { productService } from '../../services';
 import { useCart } from '../../contexts/CartContext';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
 import { SearchSuggestionsDropdown } from '../../components/SearchSuggestionsDropdown';
 import { getProductImageSource } from '../../utils/productImage';
+import { truncateProductName } from '../../utils/productName';
 
 const getCategoryIcon = (cat: string) => {
   const iconMap: Record<string, { Icon: any; color: string }> = {
@@ -30,6 +31,7 @@ const getCategoryIcon = (cat: string) => {
     'Padaria': { Icon: Croissant, color: '#FFC107' },
     'Açougue': { Icon: Drumstick, color: '#F44336' },
     'Hortifruti': { Icon: Apple, color: '#4CAF50' },
+    'Refrigerados': { Icon: Snowflake, color: '#00ACC1' },
     'Frios': { Icon: Sandwich, color: '#FFEB3B' },
     'Laticínios': { Icon: Milk, color: '#E0E0E0' },
     'Mercearia': { Icon: ShoppingBag, color: '#795548' },
@@ -83,9 +85,10 @@ const SearchBar: React.FC<{
 const DEFAULT_PRODUCT_IMAGE = require('../../../assets/agua-sanitaria.png');
 
 const MOBILE_BREAKPOINT = 768;
-const ITEMS_PER_ROW_WEB = 8;
-const ITEMS_PER_ROW_MOBILE = 8;
+const ITEMS_PER_ROW_WEB = 7;
+const ITEMS_PER_ROW_MOBILE = 7;
 const GAP = 8;
+const SIDEBAR_WIDTH = 280;
 
 interface Props {
   route: any;
@@ -181,9 +184,11 @@ export const SearchResultsScreen: React.FC<Props> = ({ route, navigation }) => {
     const n = itemsPerRow;
     const totalGap = GAP * (n - 1);
     const padding = 32;
-    const availableWidth = width - padding * 2 - totalGap;
+    // No desktop a área de conteúdo é width menos a sidebar; senão as linhas quebram (ex.: 6+2+1)
+    const contentWidth = isMobile ? width : width - SIDEBAR_WIDTH;
+    const availableWidth = contentWidth - padding * 2 - totalGap;
     return Math.floor(availableWidth / n);
-  }, [width, itemsPerRow]);
+  }, [width, itemsPerRow, isMobile]);
 
   useEffect(() => {
     const data = productService.getProductsByMarket(marketId);
@@ -481,7 +486,7 @@ export const SearchResultsScreen: React.FC<Props> = ({ route, navigation }) => {
               numberOfLines={3}
               ellipsizeMode="tail"
             >
-              {product.name}
+              {truncateProductName(product.name)}
             </Text>
           </View>
         </TouchableOpacity>
@@ -645,8 +650,9 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: GAP,
+    marginTop: 12,
     marginBottom: 0,
   },
   productCard: {
@@ -729,7 +735,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   productNameSlot: {
-    minHeight: 36,
+    height: 52,
     justifyContent: 'center',
     overflow: 'hidden',
     minWidth: 0,

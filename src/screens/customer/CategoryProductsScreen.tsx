@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Image,
-  SectionList,
   TouchableOpacity,
   Pressable,
   StyleSheet,
@@ -15,22 +14,25 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { ArrowLeft, Plus, Minus, ShoppingCart, ChevronLeft, ChevronRight, ChevronDown, Search, ShoppingBag, User, Utensils, GlassWater, Sparkles, ShowerHead, Croissant, Drumstick, Apple, Sandwich, Milk, Package } from 'lucide-react-native';
+import { ArrowLeft, Plus, Minus, ShoppingCart, ChevronLeft, ChevronRight, ChevronDown, Search, ShoppingBag, User, Utensils, GlassWater, Sparkles, ShowerHead, Croissant, Drumstick, Apple, Sandwich, Milk, Package, Snowflake } from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../../models';
 import { productService } from '../../services';
 import { useCart } from '../../contexts/CartContext';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
 import { SearchSuggestionsDropdown } from '../../components/SearchSuggestionsDropdown';
 import { getProductImageSource } from '../../utils/productImage';
+import { truncateProductName } from '../../utils/productName';
 
 const DEFAULT_PRODUCT_IMAGE = require('../../../assets/agua-sanitaria.png');
 
 const MOBILE_BREAKPOINT = 768;
-const ITEMS_PER_ROW_WEB = 8;
-const ITEMS_PER_ROW_MOBILE = 8;
+const ITEMS_PER_VIEW_MOBILE = 3;
+const ITEMS_PER_VIEW_WEB = 8;
 const PADDING_HORIZONTAL = 16;
 const GAP = 8;
 const WEB_LAYOUT_BUFFER = 48;
+const PEEK_WIDTH = 28;
+const SIDEBAR_WIDTH = 280;
 
 interface Props {
   route: any;
@@ -39,15 +41,7 @@ interface Props {
 
 interface Section {
   title: string;
-  data: ProductWithFinalPrice[][];
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
+  items: ProductWithFinalPrice[];
 }
 
 const getCategoryIcon = (cat: string) => {
@@ -59,6 +53,7 @@ const getCategoryIcon = (cat: string) => {
     'Padaria': { Icon: Croissant, color: '#FFC107' },
     'Açougue': { Icon: Drumstick, color: '#F44336' },
     'Hortifruti': { Icon: Apple, color: '#4CAF50' },
+    'Refrigerados': { Icon: Snowflake, color: '#00ACC1' },
     'Frios': { Icon: Sandwich, color: '#FFEB3B' },
     'Laticínios': { Icon: Milk, color: '#E0E0E0' },
     'Mercearia': { Icon: ShoppingBag, color: '#795548' },
@@ -175,6 +170,8 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
   const { getTotalItems, addToCart, openCartModal, items, updateQuantity, setMarket } = useCart();
   const { width } = useWindowDimensions();
   const bannerScrollRef = useRef<ScrollView | null>(null);
+  const [categoryPage, setCategoryPage] = useState<Record<string, number>>({});
+  const categoryScrollRefs = useRef<Record<string, ScrollView | null>>({});
 
   // Define o mercado selecionado no contexto do carrinho (setMarket estável via useCallback no contexto)
   useEffect(() => {
@@ -189,15 +186,23 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
   ];
 
   const isMobile = width < MOBILE_BREAKPOINT;
-  const itemsPerRow = isMobile ? ITEMS_PER_ROW_MOBILE : ITEMS_PER_ROW_WEB;
+  const itemsPerView = isMobile ? ITEMS_PER_VIEW_MOBILE : ITEMS_PER_VIEW_WEB;
 
   const itemSize = useMemo(() => {
-    const n = itemsPerRow;
+    const n = itemsPerView;
+    if (isMobile) {
+      const availableWidth = width - PADDING_HORIZONTAL * 2 - GAP;
+      return Math.max(80, Math.floor(availableWidth / n));
+    }
     const totalGap = GAP * (n - 1);
-    const padding = 32; // Padding lateral adequado
-    const availableWidth = width - padding * 2 - totalGap;
-    return Math.floor(availableWidth / n);
-  }, [width, itemsPerRow]);
+    const extraBuffer = WEB_LAYOUT_BUFFER;
+    const arrowSpace = 80;
+    const availableWidth = width - PADDING_HORIZONTAL * 2 - totalGap - extraBuffer - SIDEBAR_WIDTH - arrowSpace;
+    return Math.max(60, Math.floor(availableWidth / n));
+  }, [width, isMobile, itemsPerView]);
+
+  const pageWidth = itemsPerView * itemSize + (itemsPerView - 1) * GAP;
+  const carouselVisibleWidth = isMobile ? width - PADDING_HORIZONTAL * 2 : pageWidth + PEEK_WIDTH;
 
   useEffect(() => {
     const data = productService.getProductsByMarket(marketId);
@@ -205,8 +210,8 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
   }, [marketId]);
 
   const bannerWidth = useMemo(() => {
-    return width;
-  }, [width]);
+    return isMobile ? width : width - SIDEBAR_WIDTH;
+  }, [width, isMobile]);
 
   const handleBannerScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = e.nativeEvent.contentOffset.x;
@@ -264,6 +269,32 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
       setSearchText('');
     }
   }, [searchText, marketId, marketName, navigation]);
+
+  const goToPrevPage = useCallback((sectionTitle: string) => {
+    const currentPage = categoryPage[sectionTitle] ?? 0;
+    const newPage = Math.max(0, currentPage - 1);
+    const scrollRef = categoryScrollRefs.current[sectionTitle];
+    scrollRef?.scrollTo({ x: newPage * pageWidth, animated: true });
+    setCategoryPage((prev) => ({ ...prev, [sectionTitle]: newPage }));
+  }, [categoryPage, pageWidth]);
+
+  const goToNextPage = useCallback((sectionTitle: string, totalItems: number) => {
+    const currentPage = categoryPage[sectionTitle] ?? 0;
+    const maxPage = Math.ceil(totalItems / itemsPerView) - 1;
+    const newPage = Math.min(maxPage, currentPage + 1);
+    const scrollRef = categoryScrollRefs.current[sectionTitle];
+    scrollRef?.scrollTo({ x: newPage * pageWidth, animated: true });
+    setCategoryPage((prev) => ({ ...prev, [sectionTitle]: newPage }));
+  }, [categoryPage, itemsPerView, pageWidth]);
+
+  const handleCategoryScroll = useCallback((sectionTitle: string) => (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    const page = Math.round(x / pageWidth);
+    setCategoryPage((prev) => {
+      if ((prev[sectionTitle] ?? 0) === page) return prev;
+      return { ...prev, [sectionTitle]: page };
+    });
+  }, [pageWidth]);
 
   useEffect(() => {
     navigation.setOptions(
@@ -419,7 +450,7 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
     );
   }, [navigation, marketName, category, getTotalItems, isMobile, categories, searchText, openCartModal, handleSearchSubmit]);
 
-  // Lista da categoria sem filtro por busca; a busca abre o modal de sugestões
+  // Lista da categoria por subcategoria (mesmo formato da ProductsScreen: sections com items)
   const sections = useMemo((): Section[] => {
     const byCategory = products.filter((p) => p.category === category);
     const bySubcategory = byCategory.reduce<Record<string, ProductWithFinalPrice[]>>(
@@ -433,9 +464,9 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
     );
     return Object.entries(bySubcategory).map(([title, items]) => ({
       title,
-      data: chunk(items, itemsPerRow),
+      items,
     }));
-  }, [products, category, itemsPerRow]);
+  }, [products, category]);
 
   // Resultados da pesquisa: busca no mock inteiro do mercado (mesmos produtos da tela inicial)
   const searchResults = useMemo(() => {
@@ -544,7 +575,7 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
               numberOfLines={3}
               ellipsizeMode="tail"
             >
-              {product.name}
+              {truncateProductName(product.name)}
             </Text>
           </View>
         </TouchableOpacity>
@@ -552,19 +583,65 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
     );
   }, [cartQtyMap, hoveredCardId, itemSize, cardMinHeight, isMobile, handlePressCard, handleQuickAdd, handleQuantityChange]);
 
-  const renderRow = useCallback(({ item: row }: { item: ProductWithFinalPrice[] }) => (
-    <View style={styles.row}>
-      {row.map((p) => renderProductCard(p))}
-      {row.length < itemsPerRow &&
-        Array.from({ length: itemsPerRow - row.length }).map((_, i) => (
-          <View key={`empty-${i}`} style={[styles.emptyCard, { width: itemSize }]} />
-        ))}
-    </View>
-  ), [renderProductCard, itemSize, itemsPerRow]);
-
-  const renderSectionHeader = useCallback(({ section }: { section: Section }) => (
-    <Text style={styles.sectionHeader}>{section.title}</Text>
-  ), []);
+  const renderCategoryBlock = useCallback((section: Section) => {
+    const page = categoryPage[section.title] ?? 0;
+    const totalPages = Math.ceil(section.items.length / itemsPerView);
+    const canGoPrev = !isMobile && page > 0;
+    const canGoNext = !isMobile && page < totalPages - 1;
+    return (
+      <View key={section.title} style={styles.sectionBlock}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeader}>{section.title}</Text>
+          {!isMobile && (
+            <View style={styles.headerControls}>
+              <TouchableOpacity
+                style={styles.seeAllButton}
+                onPress={goToAllProducts}
+              >
+                <Text style={styles.seeAllText}>Ver mais</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.navArrowButton, !canGoPrev && styles.navArrowButtonDisabled]}
+                onPress={() => canGoPrev && goToPrevPage(section.title)}
+                disabled={!canGoPrev}
+              >
+                <ChevronLeft size={18} color={canGoPrev ? '#333' : '#ccc'} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.navArrowButton, !canGoNext && styles.navArrowButtonDisabled]}
+                onPress={() => canGoNext && goToNextPage(section.title, section.items.length)}
+                disabled={!canGoNext}
+              >
+                <ChevronRight size={18} color={canGoNext ? '#333' : '#ccc'} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+        <View style={styles.carouselRow}>
+          <View style={[styles.carouselViewport, { width: carouselVisibleWidth }]}>
+            <ScrollView
+              ref={(el) => {
+                categoryScrollRefs.current[section.title] = el;
+              }}
+              horizontal
+              showsHorizontalScrollIndicator={isMobile}
+              decelerationRate="fast"
+              snapToInterval={isMobile ? undefined : pageWidth}
+              snapToAlignment="start"
+              contentContainerStyle={styles.carouselContent}
+              onMomentumScrollEnd={!isMobile ? handleCategoryScroll(section.title) : undefined}
+            >
+              {section.items.map((p) => (
+                <View key={p.id} style={[styles.carouselCardWrap, { width: itemSize, marginRight: GAP }]}>
+                  {renderProductCard(p)}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </View>
+    );
+  }, [categoryPage, itemsPerView, isMobile, goToAllProducts, goToPrevPage, goToNextPage, handleCategoryScroll, carouselVisibleWidth, pageWidth, itemSize, renderProductCard]);
 
   const renderBanner = useCallback(() => (
     <View style={styles.bannerContainer}>
@@ -621,18 +698,14 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
             <Text style={styles.emptyText}>Nenhum produto nesta categoria.</Text>
           </View>
         ) : (
-          <SectionList
-            sections={sections}
-            renderItem={renderRow}
-            renderSectionHeader={renderSectionHeader}
-            ListHeaderComponent={renderBanner}
-            keyExtractor={(item) => item.map((p) => p.id).join('-')}
+          <ScrollView
+            style={styles.scrollView}
             contentContainerStyle={styles.list}
-            stickySectionHeadersEnabled={false}
-            initialNumToRender={4}
-            maxToRenderPerBatch={4}
-            windowSize={6}
-          />
+            showsVerticalScrollIndicator={true}
+          >
+            {renderBanner()}
+            {sections.map(renderCategoryBlock)}
+          </ScrollView>
         )
       ) : (
         <View style={styles.webRow}>
@@ -703,19 +776,14 @@ export const CategoryProductsScreen: React.FC<Props> = ({ route, navigation }) =
                 <Text style={styles.emptyText}>Nenhum produto nesta categoria.</Text>
               </View>
             ) : (
-              <SectionList
-                  style={styles.sectionList}
-                  sections={sections}
-                  renderItem={renderRow}
-                  renderSectionHeader={renderSectionHeader}
-                  ListHeaderComponent={renderBanner}
-                  keyExtractor={(item) => item.map((p) => p.id).join('-')}
-                  contentContainerStyle={styles.list}
-                  stickySectionHeadersEnabled={false}
-                  initialNumToRender={4}
-                  maxToRenderPerBatch={4}
-                  windowSize={6}
-                />
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.list}
+                showsVerticalScrollIndicator={true}
+              >
+                {renderBanner()}
+                {sections.map(renderCategoryBlock)}
+              </ScrollView>
             )}
           </View>
         </View>
@@ -1060,13 +1128,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
   },
-  sectionList: {
-    flex: 1,
-  },
   list: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingHorizontal: 32,
+    padding: 16,
+    paddingBottom: 32,
   },
   bannerContainer: {
     height: 240,
@@ -1125,19 +1189,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  sectionBlock: {
+    marginBottom: 28,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionHeader: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 24,
-    marginBottom: 12,
+    paddingHorizontal: 16,
   },
-  row: {
+  headerControls: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: GAP,
-    marginBottom: 0,
+    alignItems: 'center',
+    gap: 8,
   },
+  seeAllButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginRight: 4,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+  },
+  navArrowButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navArrowButtonDisabled: {
+    borderColor: '#ccc',
+    opacity: 0.5,
+  },
+  carouselRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  carouselViewport: {
+    marginHorizontal: 8,
+    overflow: 'hidden',
+  },
+  carouselContent: {
+    flexDirection: 'row',
+    paddingRight: PEEK_WIDTH,
+  },
+  carouselCardWrap: {},
   productCard: {
     backgroundColor: '#fff',
     padding: 10,
@@ -1236,7 +1344,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   productNameSlot: {
-    minHeight: 36,
+    height: 52,
     justifyContent: 'center',
     overflow: 'hidden',
     minWidth: 0,
@@ -1279,11 +1387,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 20,
   },
-  emptyCard: {
-    backgroundColor: 'transparent',
-    shadowOpacity: 0,
-    elevation: 0,
-    height: 0,
-    minHeight: 0,
+  scrollView: {
+    flex: 1,
   },
 });

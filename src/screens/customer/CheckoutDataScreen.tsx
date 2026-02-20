@@ -17,6 +17,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService, db } from '../../services';
 import { getProductImageSource } from '../../utils/productImage';
+import { truncateProductName } from '../../utils/productName';
 
 const DEFAULT_PRODUCT_IMAGE = require('../../../assets/agua-sanitaria.png');
 
@@ -418,7 +419,7 @@ export const CheckoutDataScreen: React.FC<Props> = ({ route, navigation }) => {
               />
             </View>
             <View style={styles.summaryItemInfo}>
-              <Text style={styles.summaryItemName} numberOfLines={2}>{item.product.name}</Text>
+              <Text style={styles.summaryItemName} numberOfLines={2}>{truncateProductName(item.product.name)}</Text>
               <View style={styles.summaryItemQtyRow}>
                 <Text style={styles.summaryItemQty}>Qtd: {item.quantity}</Text>
                 <Text style={styles.summaryItemPrice}>

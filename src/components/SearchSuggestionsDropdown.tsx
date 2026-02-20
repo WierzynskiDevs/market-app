@@ -12,6 +12,7 @@ import { Plus, Minus, Trash } from 'lucide-react-native';
 import { ProductWithFinalPrice } from '../models';
 import { useCart } from '../contexts/CartContext';
 import { getProductImageSource } from '../utils/productImage';
+import { truncateProductName } from '../utils/productName';
 
 const DEFAULT_PRODUCT_IMAGE = require('../../assets/agua-sanitaria.png');
 
@@ -84,7 +85,7 @@ export const SearchSuggestionsDropdown: React.FC<SearchSuggestionsDropdownProps>
                 </View>
                 <View style={styles.info}>
                   <Text style={styles.productName} numberOfLines={2}>
-                    {product.name}
+                    {truncateProductName(product.name)}
                   </Text>
                   <Text style={styles.priceRow}>
                     R$ {product.finalPrice.toFixed(2)}
